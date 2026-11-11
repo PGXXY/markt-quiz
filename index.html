@@ -4,33 +4,35 @@
 <meta charset="UTF-8">
 <title>Quiz: Vollkommener Markt</title>
 <style>
-  body { font-family: 'Segoe UI', sans-serif; max-width: 700px; margin: 40px auto; padding: 0 20px; background: #f5f5f5; }
-  h1 { text-align: center; color: #333; }
-  .question { background: #fff; border-radius: 12px; padding: 20px; margin: 20px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-  .question h3 { margin-top: 0; }
+  * { box-sizing: border-box; }
+  body { font-family: 'Segoe UI', sans-serif; max-width: 700px; margin: 40px auto; padding: 0 20px; background: #1a1a2e; color: #e0e0e0; }
+  h1 { text-align: center; color: #fff; }
+  .question { background: #16213e; border-radius: 12px; padding: 20px; margin: 20px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+  .question h3 { margin-top: 0; color: #fff; }
   .options { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
-  .options button { padding: 10px 18px; border: 2px solid #4a90d9; background: #fff; border-radius: 8px; cursor: pointer; font-size: 15px; transition: all 0.2s; }
-  .options button:hover { background: #e8f0fe; }
+  .options button { padding: 10px 18px; border: 2px solid #4a90d9; background: #0f3460; color: #e0e0e0; border-radius: 8px; cursor: pointer; font-size: 15px; transition: all 0.2s; }
+  .options button:hover { background: #1a4a7a; }
   .options button.selected { background: #4a90d9; color: #fff; }
   .options button.correct { background: #2e7d32; color: #fff; border-color: #2e7d32; }
   .options button.wrong { background: #c62828; color: #fff; border-color: #c62828; }
-  .options button.incorrect-missed { background: #fff; border-color: #2e7d32; color: #2e7d32; border-style: dashed; }
-  #submit { display: block; margin: 30px auto; padding: 14px 40px; font-size: 18px; background: #4a90d9; color: #fff; border: none; border-radius: 10px; cursor: pointer; }
-  #submit:hover { background: #357abd; }
-  #result { text-align: center; font-size: 20px; margin: 20px 0; font-weight: bold; }
-  .feedback { margin-top: 10px; font-size: 14px; color: #555; }
+  .options button.incorrect-missed { background: #0f3460; border-color: #2e7d32; color: #2e7d32; border-style: dashed; }
+  #submitBtn { display: block; margin: 30px auto; padding: 14px 40px; font-size: 18px; background: #4a90d9; color: #fff; border: none; border-radius: 10px; cursor: pointer; }
+  #submitBtn:hover { background: #357abd; }
+  #submitBtn:disabled { background: #555; cursor: not-allowed; }
+  #result { text-align: center; font-size: 20px; margin: 20px 0; font-weight: bold; color: #fff; }
+  .feedback { margin-top: 10px; font-size: 14px; color: #aaa; }
 </style>
 </head>
 <body>
 <h1>Quiz: Ist der Markt vollkommen?</h1>
-<p style="text-align:center">Kreuz an, welche Bedingungen erfüllt sind. Mehrfachauswahl möglich!</p>
+<p style="text-align:center; color:#aaa;">Kreuz an, welche Bedingungen erfüllt sind. Mehrfachauswahl möglich!</p>
 
 <div id="quiz"></div>
-<button id="submit" onclick="evaluate()">Auswerten</button>
+<button id="submitBtn">Auswerten</button>
 <div id="result"></div>
 
 <script>
-const questions = [
+var questions = [
   { name: "Getreidebörse (Weizen)", correct: [1,2,3,4] },
   { name: "Luxusautos (Porsche, Bentley, Rolls-Royce)", correct: [4] },
   { name: "Lokaler Wochenmarkt (Gemüse, Obst)", correct: [3,4] },
@@ -41,67 +43,82 @@ const questions = [
   { name: "Arbeitsmarkt für erfahrene Chirurgen", correct: [4] }
 ];
 
-const labels = {
+var labels = {
   1: "Homogenität der Güter",
   2: "Markttransparenz",
   3: "Einheit von Raum & Zeit",
   4: "Rationalität"
 };
 
-let selections = questions.map(() => []);
+var selections = [];
+for (var i = 0; i < questions.length; i++) { selections.push([]); }
 
 function render() {
-  const container = document.getElementById('quiz');
+  var container = document.getElementById('quiz');
   container.innerHTML = '';
-  questions.forEach((q, i) => {
-    const div = document.createElement('div');
+  for (var i = 0; i < questions.length; i++) {
+    var q = questions[i];
+    var div = document.createElement('div');
     div.className = 'question';
-    div.innerHTML = `<h3>${i+1}. ${q.name}</h3>
-      <div class="options">
-        ${[1,2,3,4].map(n => `<button id="q${i}_o${n}" onclick="toggle(${i},${n})">${n} – ${labels[n]}</button>`).join('')}
-      </div>
-      <div class="feedback" id="fb${i}"></div>`;
+    var html = '<h3>' + (i+1) + '. ' + q.name + '</h3><div class="options">';
+    for (var n = 1; n <= 4; n++) {
+      html += '<button id="q' + i + '_o' + n + '" onclick="toggle(' + i + ',' + n + ')">' + n + ' – ' + labels[n] + '</button>';
+    }
+    html += '</div><div class="feedback" id="fb' + i + '"></div>';
+    div.innerHTML = html;
     container.appendChild(div);
-  });
+  }
 }
 
 function toggle(qi, oi) {
-  const btn = document.getElementById(`q${qi}_o${oi}`);
+  var btn = document.getElementById('q' + qi + '_o' + oi);
   if (btn.classList.contains('correct') || btn.classList.contains('wrong') || btn.classList.contains('incorrect-missed')) return;
-  const idx = selections[qi].indexOf(oi);
+  var idx = selections[qi].indexOf(oi);
   if (idx === -1) { selections[qi].push(oi); btn.classList.add('selected'); }
-  else { selections[qi].splice(idx,1); btn.classList.remove('selected'); }
+  else { selections[qi].splice(idx, 1); btn.classList.remove('selected'); }
 }
 
 function evaluate() {
-  let score = 0;
-  questions.forEach((q, i) => {
-    const user = selections[i].sort();
-    const correct = [...q.correct].sort();
-    const perfect = user.length === correct.length && user.every((v,j) => v === correct[j]);
+  var score = 0;
+  for (var i = 0; i < questions.length; i++) {
+    var user = selections[i].slice().sort();
+    var correct = questions[i].correct.slice().sort();
+    var perfect = user.length === correct.length;
+    if (perfect) {
+      for (var j = 0; j < user.length; j++) {
+        if (user[j] !== correct[j]) { perfect = false; break; }
+      }
+    }
     if (perfect) score++;
 
-    [1,2,3,4].forEach(n => {
-      const btn = document.getElementById(`q${i}_o${n}`);
+    for (var n = 1; n <= 4; n++) {
+      var btn = document.getElementById('q' + i + '_o' + n);
       btn.classList.remove('selected');
-      const inUser = user.includes(n);
-      const inCorrect = correct.includes(n);
+      var inUser = user.indexOf(n) !== -1;
+      var inCorrect = correct.indexOf(n) !== -1;
       if (inUser && inCorrect) btn.classList.add('correct');
       else if (inUser && !inCorrect) btn.classList.add('wrong');
       else if (!inUser && inCorrect) btn.classList.add('incorrect-missed');
-    });
+    }
 
-    const fb = document.getElementById(`fb${i}`);
-    fb.innerHTML = perfect
-      ? '✅ Richtig!'
-      : `❌ Falsch. Richtig: ${correct.map(n => n + ' (' + labels[n] + ')').join(', ')}`;
-  });
+    var fb = document.getElementById('fb' + i);
+    if (perfect) {
+      fb.innerHTML = '✅ Richtig!';
+    } else {
+      var parts = [];
+      for (var k = 0; k < correct.length; k++) {
+        parts.push(correct[k] + ' (' + labels[correct[k]] + ')');
+      }
+      fb.innerHTML = '❌ Falsch. Richtig: ' + parts.join(', ');
+    }
+  }
 
-  document.getElementById('result').textContent = `Ergebnis: ${score} / ${questions.length}`;
-  document.getElementById('submit').disabled = true;
+  document.getElementById('result').textContent = 'Ergebnis: ' + score + ' / ' + questions.length;
+  document.getElementById('submitBtn').disabled = true;
 }
 
+document.getElementById('submitBtn').addEventListener('click', evaluate);
 render();
 </script>
 </body>
-</html>   
+</html>     
